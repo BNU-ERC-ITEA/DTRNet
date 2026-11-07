@@ -1,0 +1,155 @@
+Global:
+  device: gpu
+  epoch_num: 100
+  log_smooth_window: 20
+  print_batch_step: 10
+  output_dir: ./outputs/DTRNet_final/
+  save_epoch_step: [1, 48]
+  eval_batch_step: [0, 2000]
+  eval_epoch_step: [0, 1]
+  cal_metric_during_train: False
+  pretrained_model:
+  checkpoints:
+  use_tensorboard: false
+  infer_img:
+  distributed: true
+  # Vocab & mapping paths
+  character_dict_path: &character_dict_path ./tools/utils/dict/visual_c3_ids/char_dict.txt
+  ids_dict_path: &ids_dict_path ./tools/utils/dict/visual_c3_ids/minimal_ids_dict.txt
+  char_to_ids_path: &char_to_ids_path ./tools/utils/dict/visual_c3_ids/char_to_ids.txt
+  max_text_length: &max_text_length 15
+  max_single_char_ids_len: &max_single_char_ids_len 25
+  use_space_char: &use_space_char True
+  save_res_path: ./outputs/DTRNet_final/predicts.txt
+  use_amp: True
+
+Optimizer:
+  name: AdamW
+  lr: 6.5e-4
+  weight_decay: 0.05
+  filter_bias_and_bn: False
+
+LRScheduler:
+  name: OneCycleLR
+  warmup_epoch: 5
+  cycle_momentum: False
+
+Architecture:
+  model_type: rec
+  algorithm: TAMER
+  Transform:
+  Encoder:
+    name: SVTRv2LNConvTwo33
+    max_sz: [32, 256]
+    use_pos_embed: False
+    out_channels: 256
+    dims: [128, 256, 384]
+    depths: [6, 6, 6]
+    num_heads: [4, 8, 12]
+    mixer: [['Conv','Conv','Conv','Conv','Conv','Conv'],['Conv','Conv','FGlobal','Global','Global','Global'],['Global','Global','Global','Global','Global','Global']]
+    local_k: [[5, 5], [5, 5], [-1, -1]]
+    sub_k: [[1, 1], [2, 1], [-1, -1]]
+    last_stage: True
+    feat2d: False
+  Decoder:
+    name: CharWiseVerifyStyleDecoder
+    nhead: 8
+    num_decoder_layers: 3
+    dim_feedforward: 1024
+    dropout: 0.3
+    dc: 64
+    cross_coverage: True
+    self_coverage: True
+    max_text_length: *max_text_length
+    text_vocab_path: *character_dict_path
+    ids_vocab_path: *ids_dict_path
+    char_to_ids_path: *char_to_ids_path
+    use_space_char: *use_space_char
+    # IDS grammar constraints
+    constrained_ctc_decode: False  # Apply IDS grammar constraints to CTC decoding at inference time, and turn them off in training to avoid slowdown.
+    ids_syntax_max_need: 8
+    # Independent char locator
+    num_char_locator_layers: 2
+    # Per-char CTC head
+    ctc_frames_per_char: 32
+    num_ctc_encoder_layers: 1
+    # Query-valid head (prefix 1/0)
+    use_valid_head: True
+
+    # IDS-guided text bonus (inference-only)
+    use_ids_bonus: False
+    ids_exact_bonus: 2.0
+    ids_soft_bonus: 3.1
+
+
+Loss:
+  name: CharWiseVerifyExistDisplayLoss
+  ignore_index: 0
+  lambda_text: 1.0
+  lambda_ids: 1.0
+  lambda_illegal: 0.1
+  lambda_valid: 1.0
+
+PostProcess:
+  name: CharWiseVerifyPostProcess
+  text_character_dict_path: *character_dict_path
+  ids_character_dict_path: *ids_dict_path
+  char_to_ids_path: *char_to_ids_path
+  use_space_char: *use_space_char
+
+Metric:
+  name: RecCharVerifyMetric
+  main_indicator: acc
+  max_len: *max_text_length
+  max_len_ids: *max_single_char_ids_len
+
+Train:
+  dataset:
+    name: LMDBDataSet
+    data_dir: /lirunrui/DTRNet/dataset/train_lmdb
+    transforms:
+      - DecodeImagePIL:
+          img_mode: RGB
+      - PARSeqAugPIL:
+      - CharWiseVerifyLabelEncode:
+          character_dict_path: *character_dict_path
+          ids_dict_path: *ids_dict_path
+          use_space_char: *use_space_char
+          max_text_length: *max_text_length
+          max_single_char_ids_len: *max_single_char_ids_len
+          char_to_ids_path: *char_to_ids_path
+      - RecTVResize:
+          image_shape: [32, 256]
+          padding: False
+      - KeepKeys:
+          keep_keys: ['image', 'label', 'length', 'per_char_ids_labels', 'per_char_ids_lengths']
+  loader:
+    shuffle: True
+    batch_size_per_card: &batch_size_per_card 256
+    drop_last: True
+    num_workers: 8
+
+Eval:
+  dataset:
+    name: LMDBDataSet
+    data_dir: /lirunrui/DTRNet/dataset/test_lmdb/test_correct
+    transforms:
+      - DecodeImagePIL:
+          img_mode: RGB
+      - CharWiseVerifyLabelEncode:
+          character_dict_path: *character_dict_path
+          ids_dict_path: *ids_dict_path
+          use_space_char: *use_space_char
+          max_text_length: *max_text_length
+          max_single_char_ids_len: *max_single_char_ids_len
+          char_to_ids_path: *char_to_ids_path
+      - RecTVResize:
+          image_shape: [32, 256]
+          padding: False
+      - KeepKeys:
+          keep_keys: ['image', 'label', 'length', 'per_char_ids_labels', 'per_char_ids_lengths']
+  loader:
+    shuffle: False
+    drop_last: False
+    batch_size_per_card: *batch_size_per_card
+    num_workers: 8

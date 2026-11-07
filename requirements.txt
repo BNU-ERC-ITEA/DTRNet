@@ -1,0 +1,16 @@
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+torch==2.4.1+cu118
+torchvision==0.19.1+cu118
+
+imgaug
+lmdb
+numpy==1.24.3
+opencv-python
+openpyxl
+pandas
+Pillow==10.4.0
+pyclipper
+pyyaml
+rapidfuzz
+tqdm
