@@ -25,9 +25,11 @@ pip install -r requirements.txt
 
 ## Dataset
 
-We reconstruct [Visual-C3](https://github.com/THUKElab/Visual-C3) into **49,337 normal training lines**, **5,482 normal test lines** and **4,370 test lines containing faked characters**. Training uses only normal text. Download links for the processed data and pretrained weights will be added here.
+We reconstruct [Visual-C3](https://github.com/THUKElab/Visual-C3) into **49,337 normal training lines**, **5,482 normal test lines** and **4,370 test lines containing faked characters**. Training uses only normal text.
 
-Organize the LMDB datasets as follows:
+Download the processed data from [Baidu Netdisk](https://pan.baidu.com/s/1eb68gHWDQifwiWgIV0fQ7g?pwd=knut) (extraction code: `knut`).
+
+Extract `DTRNet_dataset.zip` to the repository root:
 
 ```text
 dataset/
