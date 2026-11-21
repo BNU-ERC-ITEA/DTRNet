@@ -53,7 +53,7 @@ CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 tools/train_rec.py -c confi
 
 ### 2. Evaluate
 
-Download the pretrained weights (`best.pth`) from [Baidu Netdisk](https://pan.baidu.com/s/13bQaCtEcM6JOvHdkMDIfjw?pwd=sfwv) ( Password: `sfwv`). Place the file at `outputs/DTRNet_final/best.pth`.
+Download the pretrained weights (`best.pth`) from [Baidu Netdisk](https://pan.baidu.com/s/1hsldSD6jYRQQ7OjAPoN9aw?pwd=unm5) ( Password: `unm5`). Place the file at `outputs/DTRNet_final/best.pth`.
 
 Before evaluation, set `constrained_ctc_decode` and `use_ids_bonus` to `true` in the configuration file.
 
